@@ -20,6 +20,7 @@ type Loop struct {
 	client      *http.Client
 	portAllower PortAllower
 	logger      Logger
+	cmder       Cmder
 	// Fixed parameters
 	uid, gid int
 	// Internal channels and locks
@@ -34,14 +35,14 @@ type Loop struct {
 
 func NewLoop(settings settings.PortForwarding, routing Routing,
 	client *http.Client, portAllower PortAllower,
-	logger Logger, uid, gid int) *Loop {
+	logger Logger, cmder Cmder, uid, gid int) *Loop {
 	return &Loop{
 		settings: Settings{
 			VPNIsUp: ptrTo(false),
 			Service: service.Settings{
 				Enabled:       settings.Enabled,
 				Filepath:      *settings.Filepath,
-				Command:       *settings.Command,
+				UpCommand:     *settings.UpCommand,
 				ListeningPort: *settings.ListeningPort,
 			},
 		},
@@ -49,6 +50,7 @@ func NewLoop(settings settings.PortForwarding, routing Routing,
 		client:      client,
 		portAllower: portAllower,
 		logger:      logger,
+		cmder:       cmder,
 		uid:         uid,
 		gid:         gid,
 	}
@@ -114,7 +116,7 @@ func (l *Loop) run(runCtx context.Context, runDone chan<- struct{},
 		*serviceSettings.Enabled = *serviceSettings.Enabled && *l.settings.VPNIsUp
 
 		l.service = service.New(serviceSettings, l.routing, l.client,
-			l.portAllower, l.logger, l.uid, l.gid)
+			l.portAllower, l.logger, l.cmder, l.uid, l.gid)
 
 		var err error
 		serviceRunError, err = l.service.Start(runCtx)
